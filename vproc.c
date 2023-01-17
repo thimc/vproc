@@ -13,6 +13,7 @@ struct Process
 	char cmd[1024];
 	char args[2048];
 	char state[1024];
+	char r[1024];
 	long u, s;
 	int pid, siz;
 };
@@ -220,7 +221,7 @@ redraw(void)
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
 	
-	toffset=0;
+	toffset = 0;
 	for(i=0; headers[i]!=nil; i++){
 		if(i==4 && !realtimeflag)
 			continue;
@@ -233,10 +234,9 @@ redraw(void)
 		toffset += Tstep;
 	}
 
-	procy=0;
+	procy = 0;
 	for(i=scroffset; i<nprocs; i++){
-		procx=0;
-		//drawproc(procy);
+		procx = 0;
 		if(screen->r.min.y+Vstep+procy>screen->r.max.y)
 			break;
 		procx += drawprocfield(screen, procx, procy, "%d", proclist[i].pid);
@@ -244,7 +244,7 @@ redraw(void)
 		procx += drawprocfield(screen, procx, procy, "%lud:%.2lud", proclist[i].u/60, proclist[i].u%60);
 		procx += drawprocfield(screen, procx, procy, "%lud:%.2lud", proclist[i].s/60, proclist[i].s%60);
 		if(realtimeflag)
-			procx += drawprocfield(screen, procx, procy, "%s", "RLTME");
+			procx += drawprocfield(screen, procx, procy, "%s", proclist[i].r);
 		procx += drawprocfield(screen, procx, procy, "%dK", proclist[i].siz);
 		procx += drawprocfield(screen, procx, procy, "%s", proclist[i].state);
 		if(argumentflag)
@@ -268,7 +268,6 @@ redraw(void)
 	draw(screen, scrollr, scrollbg, nil, ZP);
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
-
 	flushimage(display, 1);
 }
 
@@ -280,6 +279,7 @@ loaddir(void)
 	char* av[16];
 	Dir* dir;
 	int i, n, ac, fd, statfd, ndirs, pid;
+	long rtime;
 
 	if(proclist!=nil)
 		free(proclist);
@@ -299,7 +299,7 @@ loaddir(void)
 	if(proclist==nil)
 		sysfatal("malloc: %r");
 
-	nprocs=0;
+	nprocs = 0;
 	for(i=0; i<ndirs; i++) {
 		if(strcmp(dir[i].name,"trace")==0)
 			continue;
@@ -327,6 +327,16 @@ loaddir(void)
 		proclist[nprocs].u = strtoul(av[3], 0, 0)/1000;
 		proclist[nprocs].s = strtoul(av[4], 0, 0)/1000;
 		proclist[nprocs].siz = atoi(av[9]);
+		rtime = strtoul(av[5], 0, 0)/1000;
+
+		if(realtimeflag){
+			if(rtime >= 86400)
+				sprint(proclist[i].r, " %lud:%02lud:%02lud:%02lud", rtime/86400, (rtime/3600)%24, (rtime/60)%60, rtime%60);
+			else if(rtime >= 3600)
+				sprint(proclist[i].r, " %lud:%02lud:%02lud", rtime/3600, (rtime/60)%60, rtime%60);
+			else
+				sprint(proclist[i].r, " %lud:%02lud", rtime/60, rtime%60);
+		}
 
 		if(argumentflag){
 			sprint(buf, "/proc/%d/args", pid);
