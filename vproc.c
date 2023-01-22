@@ -35,15 +35,15 @@ enum
 enum
 {
 	Vstep = 30, /* vertical distance between cells */
-	Tstep = 63,	/* horizontal distance between cells */
+	Hstep = 70, /* minimum horizontal distance between cells */
 	Theight = 25, /* toolbar height */
 	Thoffset = 15, /* horziontal text offset */
 };
 
 char* headers[] = { "pid", "user", "utime", "stime", "rtime",
 			"size", "state", "command", "command + args", nil };
-int nprocs=10;
-int visprocs=2;
+int nprocs;
+int visprocs;
 int delay;
 int scroffset;
 int argumentflag;
@@ -51,6 +51,7 @@ int realtimeflag;
 int reverseoflag;
 int isscrolling;
 int oldbuttons;
+int hstep;
 
 Image* toolbg;
 Image* toolfg;
@@ -196,7 +197,7 @@ drawprocfield(Image* screen, int px, int py, char* fmt, ...)
 
 	string(screen, Pt(screen->r.min.x+Scrollwidth+Thoffset+px, screen->r.min.y+Vstep+py+5),
 		viewfg, ZP, display->defaultfont, buf);
-	return Tstep;
+	return hstep;
 }
 
 void
@@ -220,7 +221,10 @@ redraw(void)
 	visprocs = (screen->r.max.y-screen->r.min.y-Thoffset-Vstep)/Vstep;
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
-	
+
+	if ((hstep = (screen->r.max.x-screen->r.min.x)/9) < Hstep)
+		hstep = Hstep;
+
 	toffset = 0;
 	for(i=0; headers[i]!=nil; i++){
 		if(i==4 && !realtimeflag)
@@ -229,9 +233,9 @@ redraw(void)
 			continue;
 		if(i==8 && !argumentflag)
 			continue;
-		string(screen, Pt(screen->r.min.x+Scrollwidth+Thoffset+toffset, screen->r.min.y+5),
+		string(screen, Pt(screen->r.min.x+Scrollwidth+Thoffset+toffset, screen->r.min.y+4),
 			toolfg, ZP, display->defaultfont, headers[i]);
-		toffset += Tstep;
+		toffset += hstep;
 	}
 
 	procy = 0;
@@ -420,6 +424,7 @@ threadmain(int argc, char *argv[])
 	argumentflag = 0;
 	reverseoflag = 0;
 	realtimeflag = 0;
+	hstep = Hstep;
 
 	ARGBEGIN{
 	case 'a':
