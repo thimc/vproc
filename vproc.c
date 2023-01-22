@@ -41,7 +41,7 @@ enum
 };
 
 char* headers[] = { "pid", "user", "utime", "stime", "rtime",
-			"size", "state", "command", "command + args", nil };
+			"size", "state", "command", "command + args" };
 int nprocs;
 int visprocs;
 int delay;
@@ -81,6 +81,16 @@ int drawprocfield(Image* screen, int px, int py, char* fmt, ...);
 void loaddir(void);
 void loadtheme(void);
 void usage(void);
+
+int
+getrowcount(void)
+{
+	int i, c;
+
+	for(i=0,c=0; headers[i] != nil; i++)
+		c++;
+	return c-1;
+}
 
 int
 cmp(void *va, void *vb)
@@ -222,7 +232,7 @@ redraw(void)
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
 
-	if ((hstep = (screen->r.max.x-screen->r.min.x)/9) < Hstep)
+	if ((hstep = (screen->r.max.x-screen->r.min.x)/getrowcount()) < Hstep)
 		hstep = Hstep;
 
 	toffset = 0;
