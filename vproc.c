@@ -89,7 +89,7 @@ getrowcount(void)
 
 	for(i=0,c=0; headers[i] != nil; i++)
 		c++;
-	return c-1;
+	return c+1;
 }
 
 int
