@@ -41,7 +41,7 @@ enum
 };
 
 char* headers[] = { "pid", "user", "utime", "stime", "rtime",
-			"size", "state", "command", "command + args" };
+			"size", "state", "command", "command + args", nil };
 int nprocs;
 int visprocs;
 int delay;
