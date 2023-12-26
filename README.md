@@ -42,3 +42,4 @@ You tell me. Here's my current TODO in no particular order:
 - [ ] implement a way to be able to select and kill a process from the list
 - [ ] man page
 - [ ] use bio.h functions and hopefully up the performance a bit
+- [ ] add functionality to sort by the different columns
