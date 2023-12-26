@@ -418,6 +418,7 @@ threadmain(int argc, char *argv[])
 		{ nil, &m,  CHANRCV },
 		{ nil, &k,  CHANRCV },
 		{ nil, nil, CHANRCV },
+		{ nil, nil, CHANRCV },
 		{ nil, nil, CHANEND },
 	};
 
