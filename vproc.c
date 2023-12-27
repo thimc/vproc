@@ -66,6 +66,7 @@ Keyboardctl *kctl;
 Mousectl *mctl;
 Biobuf *b;
 
+int getrowcount(void);
 int cmp(void *va, void *vb);
 void emouse(Mouse *m);
 void ekeyboard(Rune k);
@@ -83,8 +84,11 @@ getrowcount(void)
 {
 	int i, c;
 
-	for(i=0, c=1; headers[i] != nil; i++, c++)
-		;
+	for(i=0, c=1; headers[i] != nil; i++){
+		if((i==4 && !realtimeflag) || (i==7 && argumentflag) || (i==8 && !argumentflag))
+			continue;
+		c++;
+	}
 	return c;
 }
 
@@ -202,7 +206,7 @@ drawprocfield(int *px, int py, char *fmt, ...)
 	vseprint(buf+n, buf+sizeof(buf), fmt, ap);
 	va_end(ap);
 
-	string(screen, Pt(screen->r.min.x+Scrollwidth+Thoffset+*px, screen->r.min.y+Vstep+py+5),
+	string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+*px, screen->r.min.y+Vstep+py),
 		viewfg, ZP, display->defaultfont, buf);
 	*px += hstep;
 }
@@ -213,31 +217,41 @@ redraw(void)
 	int i, hscr, yscr, toffset, procx, procy;
 
 	toolr = Rect(screen->r.min.x, screen->r.min.y, screen->r.max.x, screen->r.min.y+Theight);
-	viewr = Rect(screen->r.min.x, screen->r.min.y+Theight, screen->r.max.x, screen->r.max.y);
+	viewr = Rect(screen->r.min.x, screen->r.min.y+Dy(toolr), screen->r.max.x, screen->r.max.y);
+	scrollr = Rect(screen->r.min.x, screen->r.min.y+Dy(toolr)+1, screen->r.min.x+Scrollwidth, screen->r.max.y);
 	visprocs = (screen->r.max.y-screen->r.min.y-Thoffset-Vstep)/Vstep;
+
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
+	line(screen, Pt(screen->r.min.x, screen->r.min.y+Theight), Pt(screen->r.max.x, screen->r.min.y+Theight),
+		Endsquare, Endsquare, 0, toolfg, ZP);
+
 	yscr = toffset = 0;
+	if(nprocs>visprocs){
+		hscr = ((double)visprocs/nprocs)*Dy(scrollr);
+		yscr = ((double)scroffset/nprocs)*Dy(scrollr);
+		scrposr = Rect(scrollr.min.x, scrollr.min.y+yscr, scrollr.max.x-1, scrollr.min.y+yscr+hscr);
+	}else{
+		scrposr = Rect(scrollr.min.x, scrollr.min.y+yscr, scrollr.max.x-1, scrollr.max.y);
+	}
+	draw(screen, scrollr, scrollbg, nil, ZP);
+	draw(screen, scrposr, scrollfg, nil, ZP);
 
 	if ((hstep = (screen->r.max.x-screen->r.min.x)/getrowcount()) < Hstep)
 		hstep = Hstep;
 
 	for(i=0; headers[i]!=nil; i++){
-		if(i==4 && !realtimeflag)
+		if((i==4 && !realtimeflag) || (i==7 && argumentflag) || (i==8 && !argumentflag))
 			continue;
-		if(i==7 && argumentflag)
-			continue;
-		if(i==8 && !argumentflag)
-			continue;
-		string(screen, Pt(screen->r.min.x+Scrollwidth+Thoffset+toffset, screen->r.min.y+4),
+		string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+toffset, screen->r.min.y+4),
 			toolfg, ZP, display->defaultfont, headers[i]);
 		toffset += hstep;
 	}
 
-	procy = 0;
 	for(i=scroffset; i<nprocs; i++){
 		procx = 0;
-		if(screen->r.min.y+Vstep+procy>screen->r.max.y)
+		procy = Vstep*(i-scroffset);
+		if(screen->r.min.y+Dy(toolr)+procy > screen->r.max.y)
 			break;
 		drawprocfield(&procx, procy, "%d", proclist[i].pid);
 		drawprocfield(&procx, procy, "%s", proclist[i].user);
@@ -251,22 +265,8 @@ redraw(void)
 			drawprocfield(&procx, procy, "%s", proclist[i].args);
 		else
 			drawprocfield(&procx, procy, "%s", proclist[i].cmd);
-		procy += Vstep;
 	}
 
-	line(screen, Pt(screen->r.min.x, screen->r.min.y+Theight), Pt(screen->r.max.x, screen->r.min.y+Theight),
-		Endsquare, Endsquare, 0, display->black, ZP);
-
-	scrollr = Rect(screen->r.min.x, screen->r.min.y+Theight+1, screen->r.min.x+Scrollwidth, screen->r.max.y);
-	if(nprocs>visprocs){
-		hscr = ((double)visprocs/nprocs)*Dy(scrollr);
-		yscr = ((double)scroffset/nprocs)*Dy(scrollr);
-		scrposr = Rect(scrollr.min.x, scrollr.min.y+yscr, scrollr.max.x-1, scrollr.min.y+yscr+hscr);
-	} else{
-		scrposr = Rect(scrollr.min.x, scrollr.min.y+yscr, scrollr.max.x-1, scrollr.max.y);
-	}
-	draw(screen, scrollr, scrollbg, nil, ZP);
-	draw(screen, scrposr, scrollfg, nil, ZP);
 
 	flushimage(display, 1);
 }
