@@ -31,6 +31,7 @@ enum {
 	Hstep = 70,		/* minimum horizontal distance between cells */
 	Theight = 25,		/* toolbar height */
 	Thoffset = 15,		/* horziontal text offset */
+	Tvoffset = 4,		/* vertical text offset */
 };
 
 char *headers[] = { 
@@ -206,7 +207,7 @@ drawprocfield(int *px, int py, char *fmt, ...)
 	vseprint(buf+n, buf+sizeof(buf), fmt, ap);
 	va_end(ap);
 
-	string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+*px, screen->r.min.y+Vstep+py),
+	string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+*px, screen->r.min.y+Dy(toolr)+Tvoffset+py),
 		viewfg, ZP, display->defaultfont, buf);
 	*px += hstep;
 }
@@ -243,7 +244,7 @@ redraw(void)
 	for(i=0; headers[i]!=nil; i++){
 		if((i==4 && !realtimeflag) || (i==7 && argumentflag) || (i==8 && !argumentflag))
 			continue;
-		string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+toffset, screen->r.min.y+4),
+		string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+toffset, screen->r.min.y+(Tvoffset/2)),
 			toolfg, ZP, display->defaultfont, headers[i]);
 		toffset += hstep;
 	}
@@ -261,10 +262,13 @@ redraw(void)
 			drawprocfield(&procx, procy, "%s", proclist[i].r);
 		drawprocfield(&procx, procy, "%dK", proclist[i].siz);
 		drawprocfield(&procx, procy, "%s", proclist[i].state);
-		if(argumentflag)
+		if(argumentflag){
+			if(strlen(proclist[i].args) < 2)
+				snprint(proclist[i].args, sizeof(proclist[i].args), "%s ?", proclist[i].cmd);
 			drawprocfield(&procx, procy, "%s", proclist[i].args);
-		else
+		}else{
 			drawprocfield(&procx, procy, "%s", proclist[i].cmd);
+		}
 	}
 
 
@@ -305,11 +309,9 @@ loaddir(void)
 			continue;
 		pid = atoi(dir[i].name);
 		sprint(buf, "/proc/%d/status", pid);
-		statfd = open(buf, OREAD);
-		if(statfd<0)
+		if((statfd = open(buf, OREAD)) < 0)
 			continue;
-		n = read(statfd, status, sizeof(status) - 1);
-		if(n < 0){
+		if((n = read(statfd, status, sizeof(status) - 1)) < 0){
 			close(statfd);
 			continue;
 		}
@@ -342,11 +344,11 @@ loaddir(void)
 
 		if(argumentflag){
 			sprint(buf, "/proc/%d/args", pid);
-			statfd = open(buf, OREAD);
-			if(statfd < 0)
+			if((statfd = open(buf, OREAD)) < 0){
+				strcpy(proclist[nprocs].args, "?");
 				goto skip;
-			n = read(statfd, buf, sizeof(buf)-1);
-			if(n < 0)
+			}
+			if((n = read(statfd, buf, sizeof(buf) - 1)) < 0)
 				goto skip;
 			buf[n] = '\0';
 			strcpy(proclist[nprocs].args, buf);
