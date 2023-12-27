@@ -344,14 +344,15 @@ loaddir(void)
 			sprint(buf, "/proc/%d/args", pid);
 			statfd = open(buf, OREAD);
 			if(statfd < 0)
-				continue;
+				goto skip;
 			n = read(statfd, buf, sizeof(buf)-1);
 			if(n < 0)
-				continue;
+				goto skip;
 			buf[n] = '\0';
 			strcpy(proclist[nprocs].args, buf);
 			close(statfd);
 		}
+skip:
 		nprocs++;
 	}
 	close(fd);
