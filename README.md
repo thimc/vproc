@@ -1,9 +1,7 @@
 # vproc
-a graphical version of ps for 9front / plan 9
-
+a graphical version of ps(1) for 9front
 
 ![vproc](vproc.png)
-
 
 ## Keyboard shortcuts
 q / Del to quit
@@ -31,15 +29,5 @@ Note: The default value is once every 5 seconds.
 ## Bugs
 Yes.
 
-Could it have been written in a better way?
-
-Yes, definitely. This is my first time writing Plan9 C.\
-Granted, vproc is mostly based off the ps source code and other projects.\
-But ways to improve are always welcome so pull requests are very much appreciated.
-
 ## Features missing
-You tell me. Here's my current TODO in no particular order:
-- [ ] implement a way to be able to select and kill a process from the list
-- [ ] man page
-- [ ] use bio.h functions and hopefully up the performance a bit
-- [ ] add functionality to sort by the different columns
+Yes.

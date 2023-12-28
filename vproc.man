@@ -1,0 +1,55 @@
+.TH VPROC 1
+.SH NAME
+vproc \- graphical version of ps(1)
+.SH SYNOPSIS
+.B vproc
+[
+.I -a
+]
+[
+.I -i
+]
+[
+.I -h
+]
+[
+.I -r
+]
+[
+.I -d seconds
+]
+.SH DESCRIPTION
+.I Vproc
+displays information about processes.
+.PP
+The
+.I \-a
+flag causes vproc to display the executable name and the arguments
+that were passed to each process.
+.PP
+The
+.I \-i
+flag causes vproc to sort the list by the pid in a reverse order.
+.PP
+The
+.I \-h
+flag will print a help messsage to standard output.
+.PP
+The
+.I \-r
+flag causes vproc to display the elapsed real time for each process.
+.PP
+Vproc will fetch new information about the processes every 5 seconds,
+this can be changed by setting the
+.I \-d
+flag. Note that the delay should be specified in seconds.
+.SH EXAMPLES
+.EX
+vproc -i -d 1
+.EE
+.SH SEE ALSO
+.EX
+ps(1)
+.EE
+.SH BUGS
+Yes.
