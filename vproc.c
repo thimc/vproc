@@ -200,6 +200,7 @@ drawprocfield(int *px, int py, char *fmt, ...)
 {
 	char buf[1024];
 	int n;
+
 	if((n = snprint(buf, sizeof(buf), "")) < 0)
 		sysfatal("snprint: %r");
 	va_list ap;
@@ -220,7 +221,7 @@ redraw(void)
 	toolr = Rect(screen->r.min.x, screen->r.min.y, screen->r.max.x, screen->r.min.y+Theight);
 	viewr = Rect(screen->r.min.x, screen->r.min.y+Dy(toolr), screen->r.max.x, screen->r.max.y);
 	scrollr = Rect(screen->r.min.x, screen->r.min.y+Dy(toolr)+1, screen->r.min.x+Scrollwidth, screen->r.max.y);
-	visprocs = (screen->r.max.y-screen->r.min.y-Thoffset-Vstep)/Vstep;
+	visprocs = (Dy(screen->r)-Dy(toolr)+Tvoffset)/Vstep;
 
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
@@ -238,7 +239,7 @@ redraw(void)
 	draw(screen, scrollr, scrollbg, nil, ZP);
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
-	if ((hstep = (screen->r.max.x-screen->r.min.x)/getrowcount()) < Hstep)
+	if ((hstep = Dx(screen->r)/getrowcount()) < Hstep)
 		hstep = Hstep;
 
 	for(i=0; headers[i]!=nil; i++){
@@ -290,17 +291,11 @@ loaddir(void)
 
 	if(chdir("/proc") == -1)
 		sysfatal("chdir: %r");
-
-	fd = open(".", OREAD);
-	if(fd<0)
+	if((fd = open(".", OREAD)) < 0)
 		sysfatal("open: %r");
-
-	ndirs = dirreadall(fd, &dir);
-	if(ndirs<0)
+	if((ndirs = dirreadall(fd, &dir)) < 0)
 		sysfatal("dirreadall: %r");
-
-	proclist = malloc(ndirs*sizeof(Process));
-	if(proclist == nil)
+	if((proclist = malloc(ndirs*sizeof(Process))) == nil)
 		sysfatal("malloc: %r");
 
 	nprocs = 0;
@@ -416,7 +411,6 @@ threadmain(int argc, char *argv[])
 {
 	Mouse m;
 	Rune k;
-
 	Alt alts[] = {
 		{ nil, &m,  CHANRCV },
 		{ nil, &k,  CHANRCV },
@@ -436,7 +430,7 @@ threadmain(int argc, char *argv[])
 		argumentflag++;
 		break;
 	case 'd':
-		delay = atoi(EARGF(usage()));
+		delay = atoi(EARGF(usage()))*1000;
 		break;
 	case 'h':
 		usage();
