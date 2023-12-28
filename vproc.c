@@ -328,13 +328,13 @@ loaddir(void)
 
 		if(realtimeflag){
 			if(rtime >= 86400)
-				sprint(proclist[i].r, " %lud:%02lud:%02lud:%02lud",
+				sprint(proclist[i].r, "%lud:%02lud:%02lud:%02lud",
 					rtime/86400, (rtime/3600)%24, (rtime/60)%60, rtime%60);
 			else if(rtime >= 3600)
-				sprint(proclist[i].r, " %lud:%02lud:%02lud",
+				sprint(proclist[i].r, "%lud:%02lud:%02lud",
 					rtime/3600, (rtime/60)%60, rtime%60);
 			else
-				sprint(proclist[i].r, " %lud:%02lud", rtime/60, rtime%60);
+				sprint(proclist[i].r, "%lud:%02lud", rtime/60, rtime%60);
 		}
 
 		if(argumentflag){
