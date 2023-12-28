@@ -252,7 +252,7 @@ redraw(void)
 	for(i=scroffset; i<nprocs; i++){
 		procx = 0;
 		procy = Vstep*(i-scroffset);
-		if(screen->r.min.y+Dy(toolr)+procy > screen->r.max.y)
+		if(screen->r.min.y+Dy(toolr)+procy+display->defaultfont->height > screen->r.max.y)
 			break;
 		drawprocfield(&procx, procy, "%d", proclist[i].pid);
 		drawprocfield(&procx, procy, "%s", proclist[i].user);
