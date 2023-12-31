@@ -245,7 +245,8 @@ redraw(void)
 	for(i=0; headers[i]!=nil; i++){
 		if((i==4 && !realtimeflag) || (i==7 && argumentflag) || (i==8 && !argumentflag))
 			continue;
-		string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+toffset, screen->r.min.y+(Tvoffset/2)),
+		string(screen, Pt(screen->r.min.x+Dx(scrollr)+Thoffset+toffset,
+			screen->r.min.y+(Dy(toolr)/2 - display->defaultfont->height/2) ),
 			toolfg, ZP, display->defaultfont, headers[i]);
 		toffset += hstep;
 	}
