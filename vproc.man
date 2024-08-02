@@ -19,7 +19,7 @@ vproc \- graphical version of ps(1)
 .I -d seconds
 ]
 [
-.I -s char
+.I -s sortfmt
 ]
 .SH DESCRIPTION
 .I Vproc
@@ -46,23 +46,25 @@ not specified it will default to
 .I
 p
 , which is the same behaviour as ps(1).
-The type can be any of the following:
+The
+.I sortfmt
+is expected to be one or more of the following:
 .TF .
 .TP
 .B p
 sort by the PID
 .TP
 .B U
-sort by the user name
+sort by username
 .TP
 .B u
-sort by the user time
+sort by user time
 .TP
 .B s
-sort by the system time
+sort by system time
 .TP
 .B r
-sort by the real time
+sort by real time
 .TP
 .B m
 sort by memory usage
@@ -71,7 +73,7 @@ sort by memory usage
 sort by the process state
 .TP
 .B c
-sort by the command
+sort by command name
 .PD
 .PP
 Vproc will poll the
