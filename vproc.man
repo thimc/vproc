@@ -18,28 +18,65 @@ vproc \- graphical version of ps(1)
 [
 .I -d seconds
 ]
+[
+.I -s char
+]
 .SH DESCRIPTION
 .I Vproc
 displays information about processes.
 .PP
 The
 .I \-a
-flag causes vproc to display the executable name and the arguments
-that were passed to each process.
+flag causes vproc to also display the arguments passed to each process.
 .PP
 The
 .I \-i
-flag causes vproc to sort the list by the pid in a reverse order.
+flag causes vproc to sort the list in a reverse order.
 .PP
 The
 .I \-h
-flag will print a help messsage to standard output.
+flag will print a usage messsage to standard output.
 .PP
 The
 .I \-r
 flag causes vproc to display the elapsed real time for each process.
 .PP
-Vproc will fetch new information about the processes every 5 seconds,
+The -s flag determines how the list should be sorted. If the flag is
+not specified it will default to
+.I
+p
+, which is the same behaviour as ps(1).
+The type can be any of the following:
+.TF .
+.TP
+.B p
+sort by the PID
+.TP
+.B U
+sort by the user name
+.TP
+.B u
+sort by the user time
+.TP
+.B s
+sort by the system time
+.TP
+.B r
+sort by the real time
+.TP
+.B m
+sort by memory usage
+.TP
+.B S
+sort by the process state
+.TP
+.B c
+sort by the command
+.PD
+.PP
+Vproc will poll the
+.I /proc
+filesystem every 5 seconds,
 this can be changed by setting the
 .I \-d
 flag. Note that the delay should be specified in seconds.
