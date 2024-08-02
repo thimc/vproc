@@ -1,0 +1,18 @@
+# This file contains random TODOs and some ideas for vproc
+
+* The username and PID row are hard coded to hold 7 bytes each which
+should be sufficient for most use cases but it would be better to
+determine this dynamically.
+
+* FIX: the state row is hard coded to hold 13 bytes. I haven't found
+any man pages that suggest that states that are longer than 13 bytes
+exist, but we should still check this.
+
+* add functionality that lets the user send various notes (proc(3))
+to the process. Perhaps by clicking on the PID a new menu will open?
+
+* optimize the row spacing when the window is bigger than 80
+characters wide, we are currently just wasting the rest of the
+windows space if the arguments flag isn't set.
+
+* be able to hide rows

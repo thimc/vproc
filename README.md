@@ -10,6 +10,8 @@ Up / Down to scroll one line
 
 Page Up / Down to scroll 10 lines
 
+Home / End to scroll to the top or bottom
+
 ## Usage
 By giving vproc the **-h flag** it will spit out the following:
 
@@ -43,4 +45,4 @@ same behaviour as ps(1).  The *char* can be any of the following:
 Yes.
 
 ## Features missing
-Yes.
+[Most likely](https://github.com/thimc/vproc/blob/main/TODO).
