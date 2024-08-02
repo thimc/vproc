@@ -19,7 +19,7 @@ struct Process {
 enum {
 	Delay = 5000, 	/* default delay in ms */
 	Scrollwidth = 13,	/* scrollbar width */
-	Minwidth = 80,	/* Minimum amount of characters to render a line without it looking to terrible :) */
+	Minwidth = 80,	/* Minimum amount of characters to render a line without it looking too terrible :) */
 	Theight = 25,		/* toolbar height */
 	Memoryfmt = 12,	/* number of characters used to display the memory usage */
 };
@@ -48,10 +48,12 @@ char *menustr[] = {
 	"0 state",
 	"0 cmd",
 	"0 reverse",
-	"                  ",
+	" ",
 	"Display options",
 	"0 arguments",
 	"0 real time usage",
+	" ",
+	"exit",
 	0
 };
 
@@ -374,6 +376,7 @@ mmenuhit(void)
 	case 9: reverseflag = !reverseflag; ok = 1; break;
 	case 12: argumentflag = !argumentflag; ok = 1; ok++; break;
 	case 13: realtimeflag = !realtimeflag; ok = 1; break;
+	case 15: threadexitsall(nil);
 	}
 	if(ok){
 		if(ok > 1){
