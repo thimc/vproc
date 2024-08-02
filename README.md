@@ -13,7 +13,7 @@ Page Up / Down to scroll 10 lines
 ## Usage
 By giving vproc the **-h flag** it will spit out the following:
 
-``vproc [-a] [-i] [h] [-d seconds] [-s char]``
+``vproc [-a] [-i] [-h] [-r] [-d seconds] [-s char]``
 
 The **-a flag** displays the arguments passed to each process.
 
