@@ -17,28 +17,29 @@ struct Process {
 } *proclist;
 
 enum {
-	Delay = 5000, 	/* default delay in ms */
+	Delay = 5000, 		/* default delay in ms */
 	Scrollwidth = 13,	/* scrollbar width */
-	Minwidth = 80,	/* Minimum amount of characters to render a line without it looking too terrible :) */
+	Minwidth = 80,		/* Minimum amount of characters to render a line without it looking too terrible :) */
 	Theight = 25,		/* toolbar height */
-	Memoryfmt = 12,	/* number of characters used to display the memory usage */
+	Rheight = 25,		/* row height */
 };
 
 enum {
 	Spid = 1<<0,		/* sort by PID (default behaviour in ps(1)) */
 	Susr = 1<<1,		/* sort by the user name */
-	Sutime = 1<<2,	/* sort by user time */
-	Sstime = 1<<3,	/* sort by system time */
-	Srtime = 1<<4,	/* sort by real time */
-	Smem = 1<<5,	/* sort by size */
-	Sstate = 1<<6,	/* sort by the state */
-	Scmd = 1<<7		/* sort by the command (excluding arguments) */
+	Sutime = 1<<2,		/* sort by user time */
+	Sstime = 1<<3,		/* sort by system time */
+	Srtime = 1<<4,		/* sort by real time */
+	Smem = 1<<5,		/* sort by size */
+	Sstate = 1<<6,		/* sort by the state */
+	Scmd= 1<<7			/* sort by the command (excluding arguments) */
 };
 
 Keyboardctl *kctl;
 Mousectl *mctl;
-char *menustr[] = {
-	"Sort",
+char *mmenustr[] = { "Send note", "stop", "start", "kill", 0 };
+char *rmenustr[] = {
+	"Sort by",
 	"0 pid",
 	"0 user",
 	"0 utime",
@@ -47,17 +48,17 @@ char *menustr[] = {
 	"0 size",
 	"0 state",
 	"0 cmd",
-	"0 reverse",
+	"0 reversed order",
 	" ",
 	"Display options",
-	"0 arguments",
-	"0 real time usage",
+	"0 cmd arguments",
+	"0 real time",
 	" ",
 	"exit",
 	0
 };
 
-Menu   menu = { menustr };
+Menu mmenu = { mmenustr }, rmenu = { rmenustr };
 
 // NOTE(thimc): the header names are in order and need to be so, not only
 // for the visual part but also for the logic that determines if the field itself
@@ -66,11 +67,19 @@ struct hdr {
     char *name;
     int width;
 } hdrs[] = {
-	{"pid", 7}, {"user", 7}, {"utime", 6}, {"stime", 6}, {"rtime", 8}, {"size", 5}, {"state", 13}, {"cmd", 0} ,{"cmd + args", 0},
+	{"pid", 7},
+	{"user", 7},
+	{"utime", 6},
+	{"stime", 6},
+	{"rtime", 8},
+	{"size", 8},
+	{"state", 13},
+	{"cmd", 0},
+	{"cmd + args", 0},
 };
 
 int argumentflag, realtimeflag, reverseflag, sorttypeflag;
-int sorttype, nprocs, visprocs;
+int sorttype, nprocs, visprocs, highlighted;
 int delay = Delay;
 int hstep;
 int scroffset, isscrolling, oldbuttons;
@@ -78,6 +87,7 @@ int scroffset, isscrolling, oldbuttons;
 Image *toolbg, *toolfg;
 Image *viewbg, *viewfg;
 Image *scrollbg, *scrollfg;
+Image *selbg;
 Rectangle toolr;
 Rectangle viewr;
 Rectangle scrollr, scrposr;
@@ -101,11 +111,12 @@ sort(void *va, void *vb)
 		return cmp(a->siz, b->siz);
 	if(sorttype&Sstate)
 		return cmp(strcmp(a->state, b->state), -strcmp(a->state, b->state));
-	if(sorttype&Scmd)
+	if(sorttype&Scmd){
 		if(!argumentflag)
 			return cmp(strcmp(a->cmd, b->cmd), -strcmp(a->cmd, b->cmd));
 		else
 			return cmp(strcmp(a->cmd, b->args), -strcmp(a->cmd, b->args));
+	}
 	return 0;
 }
 
@@ -149,39 +160,52 @@ timerproc(void *c)
 	}
 }
 
-int
-vertcellpos(int index)
+Point
+getpos(int x, int y)
 {
-	int j, o;
+	Point pt;
+	int i;
 
-	o = 0;
-	for(j = 0; j < index; j++){
-		if((j == 4 && !realtimeflag) || (j == 7 && argumentflag) || (j == 8 && !argumentflag))
+	pt = Pt(Dx(scrollr) * 2, (Rheight - font->height) / 2);
+	for(i = 0; i < x; i++){
+		if((i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
 			continue;
-		o += hdrs[j].width * stringwidth(font, "0");
+		pt.x += hdrs[i].width * font->width;
 	}
-	return (Dx(scrollr) * 2) + o;
+	pt.y += (Rheight * y + 1);
+
+	return addpt(pt, screen->r.min);
 }
 
 void
-drawprocfield(Point *pt, char *fmt, ...)
+drawcell(int x, int y, char *fmt, ...)
 {
-	Point p;
 	char buf[128];
 	va_list ap;
+
 	va_start(ap, fmt);
 	vseprint(buf, buf+sizeof(buf), fmt, ap);
 	va_end(ap);
 
-	p = addpt(screen->r.min, *pt);
-	string(screen, addpt(p, Pt(vertcellpos(pt->x++) - pt->x, 0)), viewfg, ZP, display->defaultfont, buf);
+	string(screen, getpos(x, y), viewfg, ZP, display->defaultfont, buf);
+}
+
+Rectangle
+getrow(int y)
+{
+	Point pt;
+
+	pt = getpos(0, y);
+	pt.x = screen->r.min.x + Dx(scrollr) + 2;
+	pt.y += Dy(toolr) - (Rheight - font->height) / 2;
+	return Rect(pt.x, pt.y, pt.x + screen->r.max.x, pt.y + Rheight);
 }
 
 void
 redraw(void)
 {
 	Point pt, spt;
-	int i, j, thdroffset, procline;
+	int i, x, y;
 
 	toolr = viewr = screen->r;
 	toolr.max.y = screen->r.min.y + Theight;
@@ -191,10 +215,6 @@ redraw(void)
 	draw(screen, toolr, toolbg, nil, ZP);
 	draw(screen, viewr, viewbg, nil, ZP);
 	line(screen, addpt(screen->r.min, Pt(0, Theight)), Pt(screen->r.max.x, screen->r.min.y + Theight), Endsquare, Endsquare, 0, toolfg, ZP);
-
-	thdroffset = Dy(toolr) - font->height - 2;
-	procline = font->height + (Dy(toolr)/2);
-	visprocs = Dy(viewr) / procline;
 
 	spt = Pt(((double)visprocs / nprocs) * Dy(scrollr), ((double)scroffset / nprocs) * Dy(scrollr));
 	scrposr = scrollr;
@@ -207,29 +227,34 @@ redraw(void)
 	draw(screen, scrollr, scrollbg, nil, ZP);
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
-	for(i = 0, j = 0; i < nelem(hdrs); i++, j++){
+	for(i = 0; i < nelem(hdrs); i++){
 		if((i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
 			continue;
-		string(screen, addpt(screen->r.min, Pt(vertcellpos(j), thdroffset)), toolfg, ZP, display->defaultfont, hdrs[i].name);
+		drawcell(i, 0, "%s", hdrs[i].name);
 	}
-
+	visprocs = (Dy(viewr) / Rheight);
 	for(i = scroffset; i < nprocs; i++){
-		pt = Pt(0, thdroffset + procline * (i+1-scroffset));
-		if ((i - scroffset) > visprocs) break;
-		drawprocfield(&pt, "%-*d", sizeof(hdrs[pt.x].width), proclist[i].pid);
-		drawprocfield(&pt, "%-*s", sizeof(hdrs[pt.x].width), proclist[i].user);
-		drawprocfield(&pt, "%1lud:%.2lud", proclist[i].u/60, proclist[i].u%60);
-		drawprocfield(&pt, "%1lud:%.2lud", proclist[i].s/60, proclist[i].s%60);
+		x = 0;
+		y = i - scroffset;
+		if(y > visprocs) break;
+		if(highlighted == y)
+			draw(screen, getrow(y), selbg, nil, ZP);
+		y++;
+		drawcell(x++, y, "%d", proclist[i].pid);
+		drawcell(x++, y,  "%-*s", sizeof(hdrs[y].width), proclist[i].user);
+		drawcell(x++, y, "%1lud:%.2lud", proclist[i].u/60, proclist[i].u%60);
+		drawcell(x++, y, "%1lud:%.2lud", proclist[i].s/60, proclist[i].s%60);
 		if(realtimeflag)
-			drawprocfield(&pt, "%-*s", sizeof(hdrs[pt.x].width), proclist[i].r);
+			drawcell(x++, y, "%-*s", sizeof(hdrs[y].width), proclist[i].r);
 		else
-			pt.x++;
-		drawprocfield(&pt, "%-*s", sizeof(hdrs[pt.x].width), formatbytes(proclist[i].siz));
-		drawprocfield(&pt, "%-*s", sizeof(hdrs[pt.x].width), proclist[i].state);
+			x++;
+		drawcell(x++, y, "%-*s", sizeof(hdrs[pt.x].width), formatbytes(proclist[i].siz));
+		drawcell(x++, y, "%-*s", sizeof(hdrs[pt.x].width), proclist[i].state);
 		if(argumentflag)
-			drawprocfield(&pt, "%-s", proclist[i].args);
+			drawcell(x++, y, "%-s", proclist[i].args);
 		else
-			drawprocfield(&pt, "%-s", proclist[i].cmd);
+			drawcell(x++, y, "%-s", proclist[i].cmd);
+		USED(x, y);
 	}
 	flushimage(display, 1);
 }
@@ -278,11 +303,11 @@ loaddir(void)
 		if(realtimeflag){
 			rtime = strtoul(sf[5], 0, 0)/1000;
 			if(rtime >= 86400)
-				sprint(proclist[i].r, "%lud:%02lud:%02lud:%02lud", rtime/86400, (rtime/3600)%24, (rtime/60)%60, rtime%60);
+				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud:%02lud:%02lud", rtime/86400, (rtime/3600)%24, (rtime/60)%60, rtime%60);
 			else if(rtime >= 3600)
-				sprint(proclist[i].r, "%lud:%02lud:%02lud", rtime/3600, (rtime/60)%60, rtime%60);
+				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud:%02lud", rtime/3600, (rtime/60)%60, rtime%60);
 			else
-				sprint(proclist[i].r, "%lud:%02lud", rtime/60, rtime%60);
+				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud", rtime/60, rtime%60);
 		}
 		if(argumentflag){
 			close(statfd);
@@ -316,6 +341,8 @@ loadtheme(void)
 	Biobuf *b;
 	char *s, *v[3];
 
+	selbg = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xF0F0F0FF);
+
 	if((b = Bopen("/dev/theme", OREAD)) != nil){
 		while((s = Brdline(b, '\n')) != nil){
 			s[Blinelen(b) - 1] = 0;
@@ -348,21 +375,36 @@ loadtheme(void)
 void
 mmenuhit(void)
 {
+	int i, n;
+
+	if((i = menuhit(2, mctl, &mmenu, nil)) < 1)
+		return;
+	n = highlighted + scroffset;
+	if(n < 1 || n > nprocs)
+		return;
+
+	postnote(PNGROUP, proclist[n].pid, mmenustr[i]);
+	loaddir();
+}
+
+void
+rmenuhit(void)
+{
 	int i, ok;
 
-	menustr[1][0] = '0'+((sorttype&Spid)>0);
-	menustr[2][0] = '0'+((sorttype&Susr)>0);
-	menustr[3][0] = '0'+((sorttype&Sutime)>0);
-	menustr[4][0] = '0'+((sorttype&Sstime)>0);
-	menustr[5][0] = '0'+((sorttype&Srtime)>0);
-	menustr[6][0] = '0'+((sorttype&Smem)>0);
-	menustr[7][0] = '0'+((sorttype&Sstate)>0);
-	menustr[8][0] = '0'+((sorttype&Scmd)>0);
-	menustr[9][0] = '0'+(reverseflag>0);
-	menustr[12][0] = '0'+(argumentflag>0);
-	menustr[13][0] = '0'+(realtimeflag>0);
+	rmenustr[1][0] = '0'+((sorttype&Spid)>0);
+	rmenustr[2][0] = '0'+((sorttype&Susr)>0);
+	rmenustr[3][0] = '0'+((sorttype&Sutime)>0);
+	rmenustr[4][0] = '0'+((sorttype&Sstime)>0);
+	rmenustr[5][0] = '0'+((sorttype&Srtime)>0);
+	rmenustr[6][0] = '0'+((sorttype&Smem)>0);
+	rmenustr[7][0] = '0'+((sorttype&Sstate)>0);
+	rmenustr[8][0] = '0'+((sorttype&Scmd)>0);
+	rmenustr[9][0] = '0'+(reverseflag>0);
+	rmenustr[12][0] = '0'+(argumentflag>0);
+	rmenustr[13][0] = '0'+(realtimeflag>0);
 
-	i = menuhit(3, mctl, &menu, nil);
+	i = menuhit(3, mctl, &rmenu, nil);
 	ok= 0;
 	switch(i){
 	case 1: sorttype ^= Spid; ok = 1; break;
@@ -374,8 +416,8 @@ mmenuhit(void)
 	case 7: sorttype ^= Sstate; ok = 1; break;
 	case 8: sorttype ^= Scmd; ok = 1; break;
 	case 9: reverseflag = !reverseflag; ok = 1; break;
-	case 12: argumentflag = !argumentflag; ok = 1; ok++; break;
-	case 13: realtimeflag = !realtimeflag; ok = 1; break;
+	case 12: argumentflag = !argumentflag; ok = 2; break;
+	case 13: realtimeflag = !realtimeflag; ok = 2; break;
 	case 15: threadexitsall(nil);
 	}
 	if(ok){
@@ -408,6 +450,7 @@ threadmain(int argc, char *argv[])
 		{ nil, nil, CHANEND },
 	};
 	char *sfmt;
+	int i;
 
 	sorttype |= Spid;
 	ARGBEGIN{
@@ -460,18 +503,29 @@ threadmain(int argc, char *argv[])
 			else if(m.buttons == 0)
 				isscrolling = 0;
 			else if(m.buttons == 4)
-				mmenuhit();
+				rmenuhit();
 			if(ptinrect(m.xy, scrollr)){
 				switch(m.buttons){
 				case 1: scroll(scroffset - 5); break;
 				case 4: scroll(scroffset + 5); break;
 				}
 			}
+			highlighted = -1;
+			if(ptinrect(m.xy, viewr)){
+				for(i = 0; i < visprocs; i++){
+					if(ptinrect(m.xy, getrow(i)) && !ptinrect(m.xy, scrollr)){
+						highlighted = i;
+						if(m.buttons & 2)
+							mmenuhit();
+						break;
+					}
+				}
+			}
 			switch(m.buttons){
 			case 8: scroll(scroffset - 1); break;
 			case 16: scroll(scroffset + 1); break;
 			}
-			if(m.buttons&2 && isscrolling){
+			if(m.buttons & 2 && isscrolling){
 				scroll((m.xy.y - scrollr.min.y) * nprocs / Dy(scrollr));
 			}
 			oldbuttons = m.buttons;
