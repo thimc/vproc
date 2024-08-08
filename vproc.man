@@ -4,16 +4,7 @@ vproc \- graphical version of ps(1)
 .SH SYNOPSIS
 .B vproc
 [
-.I -a
-]
-[
-.I -i
-]
-[
-.I -h
-]
-[
-.I -r
+.I -ahinr
 ]
 [
 .I -d seconds
@@ -23,25 +14,34 @@ vproc \- graphical version of ps(1)
 ]
 .SH DESCRIPTION
 .I Vproc
-displays information about processes.
+is a graphical tool that displays information about processes, it
+scans the /proc file system every 5 seconds.
 .PP
 The
 .I \-a
 flag causes vproc to also display the arguments passed to each process.
 .PP
 The
-.I \-i
-flag causes vproc to sort the list in a reverse order.
+.I \-d
+flag specifies the sleep interval between each poll.
 .PP
 The
 .I \-h
-flag will print a usage messsage to standard output.
+flag prints a usage messsage to standard output.
+.PP
+The
+.I \-i
+flag causes vproc to sort the list in a reversed order.
+.PP
+The
+.I \-n
+flag causes vproc to also display the note group of each process.
 .PP
 The
 .I \-r
 flag causes vproc to display the elapsed real time for each process.
 .PP
-The -s flag determines how the list should be sorted. If the flag is
+The -s flag determines how the list should be sorted.  If the flag is
 not specified it will default to
 .I
 p
@@ -75,14 +75,10 @@ sort by the process state
 .B c
 sort by command name
 .PD
-.PP
-Vproc will poll the
-.I /proc
-filesystem every 5 seconds,
-this can be changed by setting the
-.I \-d
-flag. Note that the delay should be specified in seconds.
 .SH EXAMPLES
+.PP
+Reverse sort the list (so that the highest PID is at the top) and
+sleep only one second between each poll.
 .EX
 vproc -i -d 1
 .EE

@@ -10,7 +10,7 @@ void redraw(void);
 
 typedef struct Process Process;
 struct Process {
-	char user[28], cmd[28], state[28];
+	char user[28], cmd[28], state[28], note[13];
 	char args[64], r[11];
 	ulong u, s, siz;
 	int pid;
@@ -40,19 +40,20 @@ Mousectl *mctl;
 char *mmenustr[] = { "Send note", "stop", "start", "kill", 0 };
 char *rmenustr[] = {
 	"Sort by",
-	"0 pid",
-	"0 user",
-	"0 utime",
-	"0 stime",
-	"0 rtime",
-	"0 size",
-	"0 state",
-	"0 cmd",
-	"0 reversed order",
+	"pid",
+	"user",
+	"utime",
+	"stime",
+	"rtime",
+	"size",
+	"state",
+	"cmd",
+	"reversed order",
 	" ",
 	"Display options",
-	"0 cmd arguments",
-	"0 real time",
+	"cmd arguments",
+	"real time",
+	"note group",
 	" ",
 	"exit",
 	0
@@ -68,6 +69,7 @@ struct hdr {
     int width;
 } hdrs[] = {
 	{"pid", 7},
+	{"noteid", 7},
 	{"user", 7},
 	{"utime", 6},
 	{"stime", 6},
@@ -78,7 +80,7 @@ struct hdr {
 	{"cmd + args", 0},
 };
 
-int argumentflag, realtimeflag, reverseflag, sorttypeflag;
+int argumentflag, noteflag, realtimeflag, reverseflag, sorttypeflag;
 int sorttype, nprocs, visprocs, highlighted;
 int delay = Delay;
 int hstep;
@@ -168,7 +170,7 @@ getpos(int x, int y)
 
 	pt = Pt(Dx(scrollr) * 2, (Rheight - font->height) / 2);
 	for(i = 0; i < x; i++){
-		if((i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
+		if((i == 1 && !noteflag) || (i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
 			continue;
 		pt.x += hdrs[i].width * font->width;
 	}
@@ -228,7 +230,7 @@ redraw(void)
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
 	for(i = 0; i < nelem(hdrs); i++){
-		if((i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
+		if((i == 1 && !noteflag) || (i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
 			continue;
 		drawcell(i, 0, "%s", hdrs[i].name);
 	}
@@ -241,6 +243,10 @@ redraw(void)
 			draw(screen, getrow(y), selbg, nil, ZP);
 		y++;
 		drawcell(x++, y, "%d", proclist[i].pid);
+		if(noteflag)
+			drawcell(x++, y, "%s", proclist[i].note);
+		else
+			x++;
 		drawcell(x++, y,  "%-*s", sizeof(hdrs[y].width), proclist[i].user);
 		drawcell(x++, y, "%1lud:%.2lud", proclist[i].u/60, proclist[i].u%60);
 		drawcell(x++, y, "%1lud:%.2lud", proclist[i].s/60, proclist[i].s%60);
@@ -313,17 +319,28 @@ loaddir(void)
 			close(statfd);
 			sprint(buf, "/proc/%d/args", pid);
  			if((statfd = open(buf, OREAD)) < 0)
-				goto err;
+				goto errargs;
 			if((sn = read(statfd, buf, sizeof(buf))) < 1)
-				goto err;
+				goto errargs;
 			buf[sn] = 0;
 			strncpy(proclist[n].args, buf, sizeof(proclist[n].args));
 			proclist[n].args[sizeof(proclist[n].args) - 1] = 0;
-			goto done;
-err:
+			goto doneargs;
+errargs:
 			snprint(proclist[n].args, sizeof(proclist[n].args), "%s ?", proclist[n].cmd);
 		}
-done:
+doneargs:
+		if(noteflag){
+			close(statfd);
+			sprint(buf, "/proc/%d/noteid", pid);
+			if((statfd = open(buf, OREAD)) < 0)
+				goto cleanup;
+			if((sn = read(statfd, buf, sizeof(buf))) < 1)
+				goto cleanup;
+			snprint(proclist[i].note, sizeof(proclist[i].note), "%ud", atoi(buf));
+			USED(sn);
+			close(statfd);
+		}
 		n++;
 cleanup:
 		close(statfd);
@@ -390,34 +407,22 @@ mmenuhit(void)
 void
 rmenuhit(void)
 {
-	int i, ok;
+	int ok;
 
-	rmenustr[1][0] = '0'+((sorttype&Spid)>0);
-	rmenustr[2][0] = '0'+((sorttype&Susr)>0);
-	rmenustr[3][0] = '0'+((sorttype&Sutime)>0);
-	rmenustr[4][0] = '0'+((sorttype&Sstime)>0);
-	rmenustr[5][0] = '0'+((sorttype&Srtime)>0);
-	rmenustr[6][0] = '0'+((sorttype&Smem)>0);
-	rmenustr[7][0] = '0'+((sorttype&Sstate)>0);
-	rmenustr[8][0] = '0'+((sorttype&Scmd)>0);
-	rmenustr[9][0] = '0'+(reverseflag>0);
-	rmenustr[12][0] = '0'+(argumentflag>0);
-	rmenustr[13][0] = '0'+(realtimeflag>0);
-
-	i = menuhit(3, mctl, &rmenu, nil);
-	ok= 0;
-	switch(i){
-	case 1: sorttype ^= Spid; ok = 1; break;
-	case 2: sorttype ^= Susr; ok = 1; break;
-	case 3: sorttype ^= Sutime; ok = 1; break;
-	case 4: sorttype ^= Sstime; ok = 1; break;
-	case 5: sorttype ^= Srtime; ok = 1; break;
-	case 6: sorttype ^= Smem; ok = 1; break;
-	case 7: sorttype ^= Sstate; ok = 1; break;
-	case 8: sorttype ^= Scmd; ok = 1; break;
+	ok = 0;
+	switch(menuhit(3, mctl, &rmenu, nil)){
+	case 1: sorttype = Spid; ok = 1; break;
+	case 2: sorttype = Susr; ok = 1; break;
+	case 3: sorttype = Sutime; ok = 1; break;
+	case 4: sorttype = Sstime; ok = 1; break;
+	case 5: sorttype = Srtime; ok = 1; break;
+	case 6: sorttype = Smem; ok = 1; break;
+	case 7: sorttype = Sstate; ok = 1; break;
+	case 8: sorttype = Scmd; ok = 1; break;
 	case 9: reverseflag = !reverseflag; ok = 1; break;
 	case 12: argumentflag = !argumentflag; ok = 2; break;
 	case 13: realtimeflag = !realtimeflag; ok = 2; break;
+	case 14: noteflag = !noteflag; ok = 2; break;
 	case 15: threadexitsall(nil);
 	}
 	if(ok){
@@ -433,7 +438,7 @@ rmenuhit(void)
 void
 usage(void)
 {
-	fprint(2, "usage: %s [-a] [-i] [-h] [-r] [-d] <seconds>\n", argv0);
+	fprint(2, "usage: %s [-ahinr] [-d seconds] [-s fmt]\n", argv0);
 	threadexitsall("usage");
 }
 
@@ -458,6 +463,7 @@ threadmain(int argc, char *argv[])
 	case 'd': delay = atoi(EARGF(usage()))*1000; break;
 	case 'h': usage();
 	case 'i': reverseflag++; break;
+	case 'n': noteflag++; break;
 	case 'r': realtimeflag++; break;
 	case 's':
 		sfmt = EARGF(usage());
