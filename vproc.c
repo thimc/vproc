@@ -170,7 +170,7 @@ getpos(int x, int y)
 
 	pt = Pt(Dx(scrollr) * 2, (Rheight - font->height) / 2);
 	for(i = 0; i < x; i++){
-		if((i == 1 && !noteflag) || (i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
+		if((i == 1 && !noteflag) || (i == 5 && !realtimeflag) || (i == 8 && argumentflag) || (i == 9 && !argumentflag))
 			continue;
 		pt.x += hdrs[i].width * font->width;
 	}
@@ -230,7 +230,7 @@ redraw(void)
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
 	for(i = 0; i < nelem(hdrs); i++){
-		if((i == 1 && !noteflag) || (i == 4 && !realtimeflag) || (i == 7 && argumentflag) || (i == 8 && !argumentflag))
+		if((i == 1 && !noteflag) || (i == 5 && !realtimeflag) || (i == 8 && argumentflag) || (i == 9 && !argumentflag))
 			continue;
 		drawcell(i, 0, "%s", hdrs[i].name);
 	}
@@ -423,7 +423,7 @@ rmenuhit(void)
 	case 12: argumentflag = !argumentflag; ok = 2; break;
 	case 13: realtimeflag = !realtimeflag; ok = 2; break;
 	case 14: noteflag = !noteflag; ok = 2; break;
-	case 15: threadexitsall(nil);
+	case 16: threadexitsall(nil);
 	}
 	if(ok){
 		if(ok > 1){
@@ -467,7 +467,6 @@ threadmain(int argc, char *argv[])
 	case 'r': realtimeflag++; break;
 	case 's':
 		sfmt = EARGF(usage());
-		sorttype = 0;
 		do{
 			switch(*sfmt){
 			case 'p': sorttype |= Spid; break;
