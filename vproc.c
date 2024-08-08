@@ -461,6 +461,7 @@ threadmain(int argc, char *argv[])
 	case 'r': realtimeflag++; break;
 	case 's':
 		sfmt = EARGF(usage());
+		sorttype = 0;
 		do{
 			switch(*sfmt){
 			case 'p': sorttype |= Spid; break;
