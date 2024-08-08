@@ -27,7 +27,7 @@ flag specifies the sleep interval between each poll.
 .PP
 The
 .I \-h
-flag prints a usage messsage to standard output.
+flag prints a usage messsage to standard error.
 .PP
 The
 .I \-i
