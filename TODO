@@ -8,9 +8,6 @@ determine this dynamically.
 any man pages that suggest that states that are longer than 13 bytes
 exist, but we should still check this.
 
-* add functionality that lets the user send various notes (proc(3))
-to the process. Perhaps by clicking on the PID a new menu will open?
-
 * optimize the row spacing when the window is bigger than 80
 characters wide, we are currently just wasting the rest of the
 windows space if the arguments flag isn't set.
