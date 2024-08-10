@@ -95,6 +95,15 @@ Rectangle viewr;
 Rectangle scrollr, scrposr;
 
 int
+skipcolumn(int i)
+{
+	return (i == 1 && !noteflag)
+		|| (i == 5 && !realtimeflag)
+		|| (i == 8 && argumentflag)
+		|| (i == 9 && !argumentflag);
+}
+
+int
 sort(void *va, void *vb)
 {
 	#define cmp(a, b) (reverseflag ? (b - a) : (a - b))
@@ -170,8 +179,7 @@ getpos(int x, int y)
 
 	pt = Pt(Dx(scrollr) * 2, (Rheight - font->height) / 2);
 	for(i = 0; i < x; i++){
-		if((i == 1 && !noteflag) || (i == 5 && !realtimeflag) || (i == 8 && argumentflag) || (i == 9 && !argumentflag))
-			continue;
+		if(skipcolumn(i)) continue;
 		pt.x += hdrs[i].width * font->width;
 	}
 	pt.y += (Rheight * y + 1);
@@ -230,8 +238,7 @@ redraw(void)
 	draw(screen, scrposr, scrollfg, nil, ZP);
 
 	for(i = 0; i < nelem(hdrs); i++){
-		if((i == 1 && !noteflag) || (i == 5 && !realtimeflag) || (i == 8 && argumentflag) || (i == 9 && !argumentflag))
-			continue;
+		if(skipcolumn(i)) continue;
 		drawcell(i, 0, "%s", hdrs[i].name);
 	}
 	visprocs = (Dy(viewr) / Rheight);
@@ -270,7 +277,7 @@ loaddir(void)
 {
 	Dir *d;
 	char status[4096], buf[50], *sf[13];
-	long rtime;
+	ulong rtime;
 	int fd, ndirs, n, i, pid, statfd, sn, sc;
 
 	n = 0;
@@ -282,7 +289,7 @@ loaddir(void)
 		sysfatal("dirreadall: %r");
 	if(proclist != nil)
 		free(proclist);
-	if((proclist = malloc(ndirs*sizeof(*proclist))) == nil)
+	if((proclist = malloc(ndirs * sizeof(*proclist))) == nil)
 		sysfatal("malloc: %r");
 
 	for(i = 0; i < ndirs; i++){
@@ -293,7 +300,7 @@ loaddir(void)
 		if((sn = read(statfd, status, sizeof(status))) < 0)
 			goto cleanup;
 		status[sn] = 0;
-		if((sc = tokenize(status, sf, nelem(sf)-1)) < nelem(sf)-1)
+		if((sc = tokenize(status, sf, nelem(sf) - 1)) < nelem(sf) - 1)
 			goto cleanup;
 		sf[sc] = 0;
 		close(statfd);
@@ -307,13 +314,13 @@ loaddir(void)
 		proclist[n].siz  = strtoul(sf[9], 0, 0);
 
 		if(realtimeflag){
-			rtime = strtoul(sf[5], 0, 0)/1000;
+			rtime = strtoul(sf[5], 0, 0) / 1000;
 			if(rtime >= 86400)
-				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud:%02lud:%02lud", rtime/86400, (rtime/3600)%24, (rtime/60)%60, rtime%60);
+				snprint(proclist[n].r, sizeof(proclist[n].r), "%lud:%02lud:%02lud:%02lud", rtime / 86400, (rtime / 3600) % 24, (rtime / 60) % 60, rtime % 60);
 			else if(rtime >= 3600)
-				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud:%02lud", rtime/3600, (rtime/60)%60, rtime%60);
+				snprint(proclist[n].r, sizeof(proclist[n].r), "%lud:%02lud:%02lud", rtime / 3600, (rtime / 60) % 60, rtime % 60);
 			else
-				snprint(proclist[i].r, sizeof(proclist[i].r), "%lud:%02lud", rtime/60, rtime%60);
+				snprint(proclist[n].r, sizeof(proclist[n].r), "%lud:%02lud", rtime / 60, rtime % 60);
 		}
 		if(argumentflag){
 			close(statfd);
@@ -337,7 +344,7 @@ doneargs:
 				goto cleanup;
 			if((sn = read(statfd, buf, sizeof(buf))) < 1)
 				goto cleanup;
-			snprint(proclist[i].note, sizeof(proclist[i].note), "%ud", atoi(buf));
+			snprint(proclist[n].note, sizeof(proclist[n].note), "%ud", atoi(buf));
 			USED(sn);
 			close(statfd);
 		}
