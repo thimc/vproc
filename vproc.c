@@ -365,8 +365,6 @@ loadtheme(void)
 	Biobuf *b;
 	char *s, *v[3];
 
-	selbg = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xF0F0F0FF);
-
 	if((b = Bopen("/dev/theme", OREAD)) != nil){
 		while((s = Brdline(b, '\n')) != nil){
 			s[Blinelen(b) - 1] = 0;
@@ -384,6 +382,8 @@ loadtheme(void)
 				scrollbg = allocimage(display, Rect(0, 0, 1, 1), screen->chan, 1, strtoul(v[1], nil, 16)<<8 | 0xff);
 			if(strcmp(v[0], "back") == 0)
 				scrollfg = allocimage(display, Rect(0, 0, 1, 1), screen->chan, 1, strtoul(v[1], nil, 16)<<8 | 0xff);
+			if(strcmp(v[0], "high") == 0)
+				selbg = allocimage(display, Rect(0, 0, 1, 1), screen->chan, 1, strtoul(v[1], nil, 16)<<8 | 0xff);
 		}
 		Bterm(b);
 		return;
@@ -394,6 +394,8 @@ loadtheme(void)
 	viewfg = display->black;
 	scrollbg = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x999999FF);
 	scrollfg = display->white;
+	selbg = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xF0F0F0FF);
+
 }
 
 void
@@ -524,7 +526,7 @@ threadmain(int argc, char *argv[])
 				}
 			}
 			highlighted = -1;
-			if(ptinrect(m.xy, viewr)){
+			if(ptinrect(m.xy, viewr) && !isscrolling){
 				for(i = 0; i < visprocs; i++){
 					if(ptinrect(m.xy, getrow(i)) && !ptinrect(m.xy, scrollr)){
 						highlighted = i;
